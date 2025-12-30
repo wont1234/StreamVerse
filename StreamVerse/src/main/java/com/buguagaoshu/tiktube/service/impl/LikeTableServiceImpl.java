@@ -5,6 +5,8 @@ import com.buguagaoshu.tiktube.entity.ArticleEntity;
 import com.buguagaoshu.tiktube.entity.CommentEntity;
 import com.buguagaoshu.tiktube.service.ArticleService;
 import com.buguagaoshu.tiktube.service.CommentService;
+import com.buguagaoshu.tiktube.service.NotificationService;
+import com.buguagaoshu.tiktube.enums.NotificationType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -30,12 +32,16 @@ public class LikeTableServiceImpl extends ServiceImpl<LikeTableDao, LikeTableEnt
 
     final CountRecorder countRecorder;
 
+    final NotificationService notificationService;
+
     public LikeTableServiceImpl(ArticleService articleService,
                                 CommentService commentService,
-                                CountRecorder countRecorder) {
+                                CountRecorder countRecorder,
+                                NotificationService notificationService) {
         this.articleService = articleService;
         this.commentService = commentService;
         this.countRecorder = countRecorder;
+        this.notificationService = notificationService;
     }
 
     @Override
@@ -103,9 +109,39 @@ public class LikeTableServiceImpl extends ServiceImpl<LikeTableDao, LikeTableEnt
             if (type == 0) {
                 countRecorder.recordArticleLike(likeObjId, 1);
                 // articleService.addCount("like_count", likeObjId, 1L);
+                // 发送点赞稿件通知
+                ArticleEntity article = articleService.getById(likeObjId);
+                if (article != null) {
+                    notificationService.sendNotification(
+                            userId,
+                            article.getUserId(),
+                            likeObjId,
+                            likeObjId,
+                            0L,
+                            "你的稿件收到点赞",
+                            "",
+                            "",
+                            NotificationType.LIKE_POST
+                    );
+                }
             } else {
                 countRecorder.recordCommentLike(likeObjId, 1);
                 //commentService.addCount("like_count", likeObjId, 1L);
+                // 发送点赞评论通知
+                CommentEntity comment = commentService.getById(likeObjId);
+                if (comment != null) {
+                    notificationService.sendNotification(
+                            userId,
+                            comment.getUserId(),
+                            likeObjId,
+                            comment.getArticleId(),
+                            likeObjId,
+                            "你的评论收到点赞",
+                            "",
+                            "",
+                            NotificationType.LIKE_COMMENT
+                    );
+                }
             }
 
             map.put("info", "点赞成功！");

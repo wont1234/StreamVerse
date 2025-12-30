@@ -9,6 +9,8 @@ import com.buguagaoshu.tiktube.entity.UserEntity;
 import com.buguagaoshu.tiktube.service.ArticleService;
 import com.buguagaoshu.tiktube.service.FollowService;
 import com.buguagaoshu.tiktube.service.UserService;
+import com.buguagaoshu.tiktube.service.NotificationService;
+import com.buguagaoshu.tiktube.enums.NotificationType;
 import com.buguagaoshu.tiktube.utils.PageUtils;
 import com.buguagaoshu.tiktube.utils.Query;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,11 +32,15 @@ public class FollowServiceImpl extends ServiceImpl<FollowDao, FollowEntity> impl
 
     private final ArticleService articleService;
 
+    private final NotificationService notificationService;
+
     @Autowired
     public FollowServiceImpl(UserService userService,
-                             ArticleService articleService) {
+                             ArticleService articleService,
+                             NotificationService notificationService) {
         this.userService = userService;
         this.articleService = articleService;
+        this.notificationService = notificationService;
     }
 
     @Override
@@ -44,6 +50,7 @@ public class FollowServiceImpl extends ServiceImpl<FollowDao, FollowEntity> impl
         if (user == null) {
             return false;
         }
+        UserEntity follower = userService.getById(userId);
         // 增加关注数
         userService.addCount("fans_count", user.getId(), 1);
         // 增加粉丝数
@@ -52,6 +59,20 @@ public class FollowServiceImpl extends ServiceImpl<FollowDao, FollowEntity> impl
         follow.setCreateTime(System.currentTimeMillis());
         follow.setCreateUser(userId);
         this.save(follow);
+        // 发送新关注通知
+        if (follower != null && userId != null && !userId.equals(user.getId())) {
+            notificationService.sendNotification(
+                    userId,
+                    user.getId(),
+                    user.getId(),
+                    0L,
+                    0L,
+                    "你有新的关注",
+                    "",
+                    "用户 " + follower.getUsername() + " 关注了你",
+                    NotificationType.SYSTEM
+            );
+        }
         return true;
     }
 

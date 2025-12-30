@@ -6,6 +6,16 @@
         {{ snackbar.text }}
       </v-snackbar>
 
+      <!-- 固定层兜底，shareDialog=true 时必定显示 -->
+      <div v-if="shareDialog" class="share-inline-fixed" @click.self="shareDialog = false">
+        <div class="share-inline-card">
+          <div class="d-flex justify-end mb-1">
+            <v-btn icon="mdi-close" variant="text" size="small" @click="shareDialog = false"></v-btn>
+          </div>
+          <ShareCard :article="{ id: id, title: videoData?.title || '' }" />
+        </div>
+      </div>
+
       <v-row v-if="!showNotFound" style="padding-top: 12px; padding-bottom: 12px">
         <v-col :cols="colsWidth" style="padding-bottom: 0px">
           <div class="position-relative sv-video-player-wrap">
@@ -91,7 +101,7 @@
                     >
                       {{ videoData.dislikeCount }}
                     </v-btn>
-                    <v-btn prepend-icon="mdi-share" variant="tonal" @click="shareDialog = true" class="ma-1">
+                    <v-btn prepend-icon="mdi-share" variant="tonal" @click.stop="openShareDialog" class="ma-1">
                       分享
                     </v-btn>
                     <v-btn
@@ -380,7 +390,7 @@
                   >
                     {{ videoData.dislikeCount }}
                   </v-btn>
-                  <v-btn prepend-icon="mdi-share" variant="tonal" @click="shareDialog = true" class="ma-1">
+                  <v-btn prepend-icon="mdi-share" variant="tonal" @click.stop="openShareDialog" class="ma-1">
                     分享
                   </v-btn>
                   <v-btn
@@ -512,9 +522,22 @@
       </v-dialog>
 
       <!-- 分享卡片弹窗 -->
-      <v-dialog max-width="600" v-model="shareDialog">
-        <ShareCard :article="{ id: id, title: videoData.title }" />
+      <v-dialog
+        max-width="640"
+        v-model="shareDialog"
+        attach="body"
+        persistent
+        :retain-focus="false"
+        scrim="rgba(0,0,0,0.75)"
+        class="share-dialog"
+        content-class="share-dialog-content"
+        transition="dialog-bottom-transition"
+      >
+        <div class="share-card-wrapper">
+          <ShareCard :article="{ id: id, title: videoData?.title || '' }" />
+        </div>
       </v-dialog>
+
     </v-container>
   </div>
 </template>
@@ -591,6 +614,10 @@ export default {
     window.removeEventListener('resize', this.onResize)
   },
   methods: {
+    openShareDialog() {
+      this.shareDialog = true
+      this.showMessage('打开分享弹窗', 'info')
+    },
     isVipSkipAds() {
       const user = this.userInfo && this.userInfo.userData ? this.userInfo.userData : null
       if (!user) {
@@ -969,6 +996,57 @@ export default {
 .sv-video-detail {
   max-width: 1560px;
   padding: 0 12px;
+}
+.share-dialog .v-overlay__content {
+  z-index: 6000 !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+}
+.share-dialog .v-overlay__scrim {
+  z-index: 5999 !important;
+}
+.share-card-wrapper {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.35);
+  padding: 12px;
+}
+.share-inline-fixed {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  z-index: 7000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.share-inline-card {
+  max-width: 640px;
+  width: 100%;
+  background: #fff;
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.35);
+}
+.share-inline-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 7000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+}
+.share-inline-card {
+  max-width: 640px;
+  width: 100%;
+  background: #fff;
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.35);
 }
 
 .category-link {

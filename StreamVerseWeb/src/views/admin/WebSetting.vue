@@ -87,11 +87,11 @@
               :true-value="true"
               color="red-darken-3"
               label="非VIP用户观看次数限制"
-              hint="开启后非VIP用户每日观看次数受限（TODO：该功能因实现不稳定，暂时移除，该配置暂不生效）"
+              hint="开启后非VIP用户每日观看次数受限"
               persistent-hint
             />
           </v-col>
-          <v-col cols="12" md="6" v-if="setting.openNoVipLimit === 1">
+          <v-col cols="12" md="6" v-if="setting.openNoVipLimit === true">
             <v-text-field
               v-model="setting.noVipViewCount"
               label="非VIP用户每日观看次数"
@@ -102,7 +102,7 @@
               persistent-hint
             />
           </v-col>
-          <v-col cols="12" md="6" v-if="setting.openNoVipLimit === 1">
+          <v-col cols="12" md="6" v-if="setting.openNoVipLimit === true">
             <v-switch
               v-model="setting.openUploadVideoAddViewCount"
               :false-value="false"
@@ -356,6 +356,13 @@ export default {
         // 确保redisConfig存在
         if (!this.setting.redisConfig) {
           this.setting.redisConfig = {}
+        }
+        // 补齐非VIP限次默认值（后端旧数据为 null 时）
+        if (this.setting.openNoVipLimit === undefined || this.setting.openNoVipLimit === null) {
+          this.setting.openNoVipLimit = true
+        }
+        if (this.setting.noVipViewCount === undefined || this.setting.noVipViewCount === null) {
+          this.setting.noVipViewCount = 10
         }
         this.loading = false
       })

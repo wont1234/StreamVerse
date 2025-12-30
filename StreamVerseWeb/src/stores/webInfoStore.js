@@ -4,13 +4,13 @@ export const useWebInfoStore = defineStore('webInfo', {
   state: () => ({
     webInfo: {
       name: 'StreamVerse',
-      openNoVipLimit: 1,
-      noVipViewCount: 5,
+      openNoVipLimit: true,
+      noVipViewCount: 10,
       logoUrl: '/favicon.png',
-      openInvitationRegister: 0,
+      openInvitationRegister: false,
       webDescribe: '视频网站',
-      openUploadVideoAddViewCount: 1,
-      openExamine: 1,
+      openUploadVideoAddViewCount: false,
+      openExamine: true,
       id: 1,
       createTime: 0,
       homeMaxVideoCount: 50,

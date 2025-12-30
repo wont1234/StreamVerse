@@ -95,8 +95,9 @@ public class WebConfigData {
     public static WebConfigData defaultConfig() {
         WebConfigData webConfigData = new WebConfigData();
         webConfigData.setName("StreamVerse");
-        webConfigData.setOpenNoVipLimit(false);
-        webConfigData.setNoVipViewCount(0);
+        // 默认开启非 VIP 观看次数限制，日次数 10
+        webConfigData.setOpenNoVipLimit(true);
+        webConfigData.setNoVipViewCount(10);
         webConfigData.setOpenInvitationRegister(false);
         webConfigData.setWebDescribe("一个牛逼的视频网站!");
         webConfigData.setOpenUploadVideoAddViewCount(false);
