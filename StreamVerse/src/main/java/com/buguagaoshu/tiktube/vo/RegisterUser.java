@@ -1,0 +1,12 @@
+package com.buguagaoshu.tiktube.vo;
+
+import lombok.Data;
+
+/**
+ * @create 2025-05-05
+ */
+@Data
+public class RegisterUser {
+    private String key;
+    private String user;
+}

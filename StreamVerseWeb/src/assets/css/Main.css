@@ -1,0 +1,28 @@
+.title-wrap {
+    white-space: normal;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    max-height: 3.6em;
+    /* 约两行文字的高度 */
+    overflow: hidden;
+    display: -webkit-box;
+    line-clamp: 2;
+    -webkit-line-clamp: 2;
+    /* 限制最多显示2行 */
+    -webkit-box-orient: vertical;
+}
+
+html {
+    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+        Arial, "Noto Sans", "Liberation Sans", sans-serif;
+}
+
+body {
+    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+        Arial, "Noto Sans", "Liberation Sans", sans-serif;
+}
+
+.v-application,
+.v-application__wrap {
+    min-height: 100vh;
+}
