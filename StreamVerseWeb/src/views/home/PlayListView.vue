@@ -16,18 +16,38 @@
         </v-col>
       </v-row>
 
-      <v-row class="mb-2" v-if="favoritesLabels.length">
-        <v-col cols="12" sm="6" md="4">
-          <v-select
-            v-model="selectedLabelId"
-            :items="favoritesLabels"
-            item-title="name"
-            item-value="id"
-            label="收藏夹"
-            variant="outlined"
-            density="comfortable"
-            @update:model-value="onLabelChange"
-          />
+      <v-row class="mb-4" align="start" v-if="userInfo.userData">
+        <v-col cols="12">
+          <div class="d-flex flex-wrap align-start ga-4">
+            <v-select
+              class="input-align"
+              v-model="selectedLabelId"
+              :items="favoritesLabels"
+              item-title="name"
+              item-value="id"
+              label="收藏夹"
+              variant="outlined"
+              density="comfortable"
+              @update:model-value="onLabelChange"
+              hide-details="auto"
+              style="min-width: 320px; max-width: 420px;"
+            />
+            <v-text-field
+              class="input-align"
+              v-model="newFavoriteName"
+              label="新建收藏夹名称"
+              variant="outlined"
+              density="comfortable"
+              maxlength="30"
+              clearable
+              hide-details="auto"
+              style="min-width: 320px; max-width: 420px;"
+            />
+            <div class="d-flex align-center ga-2">
+              <v-btn color="primary" :loading="favoriteCreating" @click="createFavoriteLabel">新建</v-btn>
+              <v-btn color="error" variant="tonal" :loading="favoriteDeleting" @click="deleteFavoriteLabel">删除</v-btn>
+            </div>
+          </div>
         </v-col>
       </v-row>
       <!-- 页面标题 -->
@@ -94,6 +114,9 @@ export default {
       totalItems: 0,
       favoritesLabels: [],
       selectedLabelId: null,
+      newFavoriteName: '',
+      favoriteCreating: false,
+      favoriteDeleting: false,
     }
   },
   created() {
@@ -146,6 +169,43 @@ export default {
       this.page = 1
       this.$router.push({ query: { page: 1, labelId: this.selectedLabelId } })
       this.getFavoriteList()
+    },
+    async createFavoriteLabel() {
+      const name = (this.newFavoriteName || '').trim()
+      if (!name) {
+        return
+      }
+      this.favoriteCreating = true
+      try {
+        await this.httpPost('/favorites/label/create', { name }, (json) => {
+          if (json && json.status === 200 && json.data && json.data.id != null) {
+            this.favoritesLabels.push(json.data)
+            this.selectedLabelId = json.data.id
+            this.newFavoriteName = ''
+            this.onLabelChange()
+          }
+        })
+      } finally {
+        this.favoriteCreating = false
+      }
+    },
+    async deleteFavoriteLabel() {
+      if (this.favoriteDeleting) return
+      if (this.selectedLabelId == null) return
+      this.favoriteDeleting = true
+      try {
+        await this.httpPost('/favorites/label/delete', { labelId: this.selectedLabelId }, async (json) => {
+          if (json && json.status === 200 && json.data === true) {
+            // 移除本地列表
+            this.favoritesLabels = this.favoritesLabels.filter((l) => l.id !== this.selectedLabelId)
+            // 重新拉取列表，确保默认收藏夹存在并设为选中
+            this.selectedLabelId = null
+            await this.loadLabelsAndList()
+          }
+        })
+      } finally {
+        this.favoriteDeleting = false
+      }
     },
     pageChange(value) {
       this.page = value

@@ -6,6 +6,38 @@
         {{ snackbar.text }}
       </v-snackbar>
 
+      <v-dialog v-model="favoriteDialog" max-width="520">
+        <v-card>
+          <v-card-title class="text-h6">选择收藏夹</v-card-title>
+          <v-card-text>
+            <v-select
+              v-model="selectedFavoriteLabelId"
+              :items="favoritesLabels"
+              item-title="name"
+              item-value="id"
+              label="收藏夹"
+              variant="outlined"
+              density="comfortable"
+              :loading="favoritesLabelsLoading"
+            />
+            <v-text-field
+              v-model="newFavoriteName"
+              label="新建收藏夹名称"
+              variant="outlined"
+              class="mt-3"
+              density="comfortable"
+              maxlength="30"
+              clearable
+            />
+          </v-card-text>
+          <v-card-actions class="justify-end">
+            <v-btn variant="text" :loading="favoriteCreating" @click="createFavoriteLabel">新建</v-btn>
+            <v-btn variant="text" @click="favoriteDialog = false">取消</v-btn>
+            <v-btn color="primary" variant="elevated" :loading="favoriteSubmitting" @click="submitFavorite">确定</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+
       <!-- 固定层兜底，shareDialog=true 时必定显示 -->
       <div v-if="shareDialog" class="share-inline-fixed" @click.self="shareDialog = false">
         <div class="share-inline-card">
@@ -590,6 +622,14 @@ export default {
       showReportDialog: false,
       playbackBlocked: false,
       playbackBlockedMessage: '',
+      favoriteDialog: false,
+      favoritesLabels: [],
+      favoritesLabelsLoading: false,
+      selectedFavoriteLabelId: null,
+      favoriteSubmitting: false,
+      currentFavoriteLabelId: null,
+      newFavoriteName: '',
+      favoriteCreating: false,
     }
   },
   computed: {
@@ -797,6 +837,108 @@ export default {
       max = Math.floor(max)
       return Math.floor(Math.random() * (max - min + 1)) + min
     },
+    requestGet(url) {
+      return new Promise((resolve) => {
+        this.httpGet(url, (json) => resolve(json))
+      })
+    },
+
+    async createFavoriteLabel() {
+      const name = (this.newFavoriteName || '').trim()
+      if (!name) {
+        this.showMessage('请输入收藏夹名称', 'warning')
+        return
+      }
+      this.favoriteCreating = true
+      try {
+        const json = await this.requestPost('/favorites/label/create', { name })
+        if (json && json.status === 200 && json.data && json.data.id != null) {
+          this.showMessage('新建成功', 'success')
+          this.favoritesLabels.push(json.data)
+          this.selectedFavoriteLabelId = json.data.id
+          this.newFavoriteName = ''
+        } else {
+          this.showMessage('新建失败', 'error')
+        }
+      } finally {
+        this.favoriteCreating = false
+      }
+    },
+
+    requestPost(url, data) {
+      return new Promise((resolve) => {
+        this.httpPost(url, data, (json) => resolve(json))
+      })
+    },
+
+    loadFavoriteLabels() {
+      this.favoritesLabelsLoading = true
+      return this.requestGet('/favorites/label/list')
+        .then((json) => {
+          if (json && json.status === 200 && Array.isArray(json.data)) {
+            this.favoritesLabels = json.data
+          }
+        })
+        .finally(() => {
+          this.favoritesLabelsLoading = false
+        })
+    },
+
+    getFavoriteInfo() {
+      return this.requestGet(`/favorites/info?articleId=${this.id}`).then((json) => {
+        if (json && json.status === 200) {
+          this.currentFavoriteLabelId = json.data ? json.data.favoritesLabelId : null
+        }
+        return json
+      })
+    },
+
+    submitFavorite() {
+      if (this.userInfo.userData == null) {
+        this.showMessage('请先登录后再收藏', 'warning')
+        return
+      }
+      if (this.selectedFavoriteLabelId == null) {
+        this.showMessage('请选择收藏夹', 'warning')
+        return
+      }
+
+      this.favoriteSubmitting = true
+      this.requestPost('/favorites/toggle', {
+        articeId: this.id,
+        favoritesLabelId: this.selectedFavoriteLabelId,
+      })
+        .then((json) => {
+          const id = json && json.data ? json.data.id : null
+
+          if (id != null) {
+            if (!this.isFavorited) {
+              this.showMessage('收藏成功！', 'success')
+              this.isFavorited = true
+              this.videoData.favoriteCount += 1
+            } else {
+              this.showMessage('已移动到新的收藏夹', 'success')
+            }
+            this.currentFavoriteLabelId = this.selectedFavoriteLabelId
+            return
+          }
+
+          if (this.isFavorited) {
+            this.showMessage('取消收藏成功！', 'info')
+            this.isFavorited = false
+            this.videoData.favoriteCount -= 1
+            this.currentFavoriteLabelId = null
+            return
+          }
+
+          this.showMessage('操作失败', 'error')
+        })
+        .finally(() => {
+          this.favoriteSubmitting = false
+          this.favoriteDialog = false
+        })
+    },
+
     // 点赞功能
     likeVideo() {
       // 如果用户未登录
@@ -823,22 +965,26 @@ export default {
         }
       })
     },
-    favoritesClick() {
+
+    async favoritesClick() {
       if (this.userInfo.userData == null) {
         this.showMessage('请先登录后再收藏', 'warning')
         return
       }
-      this.httpPost('/favorites/toggle', { articeId: this.id }, (json) => {
-        if (json.data.id != null) {
-          this.showMessage('收藏成功！', 'success')
-          this.isFavorited = true
-          this.videoData.favoriteCount += 1
-        } else {
-          this.showMessage('取消收藏成功！', 'info')
-          this.isFavorited = false
-          this.videoData.favoriteCount -= 1
-        }
-      })
+
+      await this.loadFavoriteLabels()
+      if (!this.favoritesLabels || this.favoritesLabels.length === 0) {
+        this.showMessage('暂无收藏夹', 'warning')
+        return
+      }
+
+      if (this.isFavorited) {
+        await this.getFavoriteInfo()
+        this.selectedFavoriteLabelId = this.currentFavoriteLabelId || this.favoritesLabels[0].id
+      } else {
+        this.selectedFavoriteLabelId = this.favoritesLabels[0].id
+      }
+      this.favoriteDialog = true
     },
     checkFavorites() {
       if (this.userInfo.userData == null) {

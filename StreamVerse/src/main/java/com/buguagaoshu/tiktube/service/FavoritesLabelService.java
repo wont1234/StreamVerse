@@ -12,4 +12,6 @@ public interface FavoritesLabelService extends IService<FavoritesLabelEntity> {
     List<FavoritesLabelEntity> listByUser(Long userId);
 
     FavoritesLabelEntity createLabel(Long userId, String name);
+
+    boolean deleteLabel(Long userId, Long labelId);
 }
